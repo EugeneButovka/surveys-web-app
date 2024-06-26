@@ -4,19 +4,43 @@ const sqlite = require('sqlite3')
 const bcrypt = require('bcrypt')
 
 // open the database
-const db = new sqlite.Database('surveys.db', (err) => { if (err) throw err })
+const db = new sqlite.Database('surveys.db', (err) => {
+  if (err) {
+    throw err
+  }
+})
 
 exports.getSurvey = (idSurvey) => {
   const sql_query = 'SELECT * FROM Survey where id = ?'
 
   return new Promise((resolve, reject) => {
     db.get(sql_query, [idSurvey], (err, row) => {
-      if (err)
+      if (err) {
         reject(err)
-      else if (row === undefined)
-        reject({ error: 'Survey not found!' })
-      else
+      } else if (row === undefined) {
+        reject({error: 'Survey not found!'})
+      } else {
         resolve(row)
+      }
+    })
+  })
+}
+
+exports.getFirstSurveyByTitle = (title) => {
+  const sql_query = `SELECT *
+                     FROM Survey
+                     where title = ?
+                     ORDER BY id desc LIMIT 1`
+
+  return new Promise((resolve, reject) => {
+    db.get(sql_query, [title], (err, row) => {
+      if (err) {
+        reject(err)
+      } else if (row === undefined) {
+        reject({error: 'Survey not found!'})
+      } else {
+        resolve(row)
+      }
     })
   })
 }
@@ -26,12 +50,13 @@ exports.getCompletedSurvey = (idCS) => {
 
   return new Promise((resolve, reject) => {
     db.get(sql_query, [idCS], (err, row) => {
-      if (err)
+      if (err) {
         reject(err)
-      else if (row === undefined) {
-        reject({ error: 'Results not found!' })
-      } else
+      } else if (row === undefined) {
+        reject({error: 'Results not found!'})
+      } else {
         resolve(row)
+      }
     })
   })
 }
@@ -41,12 +66,13 @@ exports.getIdCompletedFirstSurvey = (idSurvey) => {
 
   return new Promise((resolve, reject) => {
     db.get(sql_query, [idSurvey], (err, row) => {
-      if (err)
+      if (err) {
         reject(err)
-      else if (row === undefined)
-        reject({ error: 'Survey not found!' })
-      else
+      } else if (row === undefined) {
+        reject({error: 'Survey not found!'})
+      } else {
         resolve(row)
+      }
     })
   })
 }
@@ -56,12 +82,50 @@ exports.getIdCompletedNextSurvey = (idCS, idSurvey) => {
 
   return new Promise((resolve, reject) => {
     db.get(sql_query, [idCS, idSurvey], (err, row) => {
-      if (err)
+      if (err) {
         reject(err)
-      else if (row === undefined)
-        reject({ error: 'Survey not found!' })
-      else
+      } else if (row === undefined) {
+        reject({error: 'Survey not found!'})
+      } else {
         resolve(row)
+      }
+    })
+  })
+}
+
+const getIdCompletedSurveyForUsername = (idSurvey, username) => {
+  const sql_query = `SELECT *
+                     FROM CompletedSurvey
+                     where idSurvey = ?
+                       and username = ?
+                     ORDER BY id desc LIMIT 1`
+
+  return new Promise((resolve, reject) => {
+    db.get(sql_query, [idSurvey, username], (err, row) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(row)
+      }
+    })
+  })
+}
+
+exports.getAllCompletedSurveysWithAnswersForUsername = (username) => {
+  const sql_query = `SELECT DISTINCT cs.idSurvey as surveyId, Q.id as questionId, UCA.idAnswer as answer
+                     FROM CompletedSurvey CS
+                              INNER JOIN main.Question Q on cs.idSurvey = Q.idSurvey
+                              INNER JOIN main.Answer A on Q.id = A.idQuestion
+                              INNER JOIN main.UserClosedAnswer UCA on A.id = UCA.idAnswer
+                     where username = ?`
+
+  return new Promise((resolve, reject) => {
+    db.all(sql_query, [username], (err, row) => {
+      if (err) {
+        reject(err)
+      } else {
+        resolve(row)
+      }
     })
   })
 }
@@ -71,10 +135,11 @@ exports.getQuestions = (idSurvey) => {
 
   return new Promise((resolve, reject) => {
     db.all(sql_query, [idSurvey], (err, rows) => {
-      if (err)
+      if (err) {
         reject(err)
-      else
+      } else {
         resolve(rows)
+      }
     })
   })
 }
@@ -84,10 +149,11 @@ exports.getAnswers = (idQuestion) => {
 
   return new Promise((resolve, reject) => {
     db.all(sql_query, [idQuestion], (err, rows) => {
-      if (err)
+      if (err) {
         reject(err)
-      else
+      } else {
         resolve(rows)
+      }
     })
   })
 }
@@ -97,9 +163,9 @@ exports.getSurveys = () => {
 
   return new Promise((resolve, reject) => {
     db.all(sql_getSurveys, [], (err, rows) => {
-      if (err)
+      if (err) {
         reject(err);
-      else {
+      } else {
         resolve(rows);
       }
     })
@@ -108,15 +174,15 @@ exports.getSurveys = () => {
 
 exports.getUserClosedAnswers = (idQuestion, idCS) => {
   const sql_query = 'select idAnswer ' +
-    'from UserClosedAnswer, Answer ' +
-    'where Answer.idQuestion = ? and idCompletedSurvey = ? ' +
-    'and Answer.id = UserClosedAnswer.idAnswer'
+      'from UserClosedAnswer, Answer ' +
+      'where Answer.idQuestion = ? and idCompletedSurvey = ? ' +
+      'and Answer.id = UserClosedAnswer.idAnswer'
 
   return new Promise((resolve, reject) => {
     db.all(sql_query, [idQuestion, idCS], (err, rows) => {
-      if (err)
+      if (err) {
         reject(err);
-      else {
+      } else {
         resolve(rows);
       }
     })
@@ -125,15 +191,16 @@ exports.getUserClosedAnswers = (idQuestion, idCS) => {
 
 exports.getUserOpenAnswers = (idQuestion, idCS) => {
   const sql_query = 'SELECT text ' +
-    'from UserOpenAnswer ' +
-    'where idQuestion = ? and idCompletedSurvey = ?'
+      'from UserOpenAnswer ' +
+      'where idQuestion = ? and idCompletedSurvey = ?'
 
   return new Promise((resolve, reject) => {
     db.get(sql_query, [idQuestion, idCS], (err, row) => {
-      if (err)
+      if (err) {
         reject(err)
-      else
+      } else {
         resolve(row)
+      }
     })
   })
 }
@@ -143,9 +210,9 @@ exports.getSurveys = () => {
 
   return new Promise((resolve, reject) => {
     db.all(sql_getSurveys, [], (err, rows) => {
-      if (err)
+      if (err) {
         reject(err);
-      else {
+      } else {
         resolve(rows);
       }
     })
@@ -153,17 +220,19 @@ exports.getSurveys = () => {
 }
 
 exports.getAdminSurveys = (idAdmin) => {
-  const sql_getSurveys = 'select min(CompletedSurvey.id) as next, Survey.id, Survey.title, count(CompletedSurvey.id) as count ' +
-    'from Survey left join CompletedSurvey on Survey.id = CompletedSurvey.idSurvey ' +
-    'where idAdmin = ? ' +
-    'group by (Survey.id)' +
-    'order by Survey.id desc'
+  const sql_getSurveys = 'select min(CompletedSurvey.id) as next, Survey.id, Survey.title, count(CompletedSurvey.id) as count '
+      +
+      'from Survey left join CompletedSurvey on Survey.id = CompletedSurvey.idSurvey '
+      +
+      'where idAdmin = ? ' +
+      'group by (Survey.id)' +
+      'order by Survey.id desc'
 
   return new Promise((resolve, reject) => {
     db.all(sql_getSurveys, [idAdmin], (err, rows) => {
-      if (err)
+      if (err) {
         reject(err)
-      else {
+      } else {
         resolve(rows)
       }
     })
@@ -174,9 +243,13 @@ const getIdSurvey = () => {
   const sql_getId = "select max(id) as num from Survey"
   return new Promise((resolve, reject) => {
     db.get(sql_getId, [], (err, row) => {
-      if (err) reject(err)
-      else if (row === undefined) reject(err)
-      else resolve(row.num)
+      if (err) {
+        reject(err)
+      } else if (row === undefined) {
+        reject(err)
+      } else {
+        resolve(row.num)
+      }
     })
   })
 }
@@ -185,9 +258,13 @@ const getIdQuestion = () => {
   const sql_getId = "select max(id) as num from Question"
   return new Promise((resolve, reject) => {
     db.get(sql_getId, [], (err, row) => {
-      if (err) reject(err)
-      else if (row === undefined) reject(err)
-      else resolve(row.num)
+      if (err) {
+        reject(err)
+      } else if (row === undefined) {
+        reject(err)
+      } else {
+        resolve(row.num)
+      }
     })
   })
 }
@@ -212,13 +289,15 @@ exports.insertQuestion = async (idSurvey, question) => {
 
   const sql_query = "INSERT INTO Question(id, idSurvey, text, type, min, max) VALUES (?, ?, ?, ?, ?, ?)"
   return new Promise((resolve, reject) => {
-    db.run(sql_query, [idQuestion, idSurvey, question.text, question.type, question.min, question.max], (error) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(idQuestion)
-      }
-    })
+    db.run(sql_query,
+        [idQuestion, idSurvey, question.text, question.type, question.min,
+          question.max], (error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(idQuestion)
+          }
+        })
   })
 }
 
@@ -240,16 +319,28 @@ const getIdCompletedSurvey = () => {
   const sql_getId = "select max(id) as num from CompletedSurvey"
   return new Promise((resolve, reject) => {
     db.get(sql_getId, [], (err, row) => {
-      if (err) reject(err)
-      else if (row === undefined) reject("Results not found!")
-      else resolve(row.num)
+      if (err) {
+        reject(err)
+      } else if (row === undefined) {
+        reject("Results not found!")
+      } else {
+        resolve(row.num)
+      }
     })
   })
 }
 
-exports.insertCompletedSurvey = async (idSurvey, username) => {
-  const compSurveyId = await getIdCompletedSurvey() + 1
-  const sql_query = "INSERT INTO CompletedSurvey(id, idSurvey, username) VALUES (?, ?, ?)"
+exports.insertOrReplaceCompletedSurvey = async (idSurvey, username) => {
+  const compSurvey = await getIdCompletedSurveyForUsername(idSurvey, username)
+  let compSurveyId
+  let sql_query
+  if (compSurvey != null) {
+    compSurveyId = compSurvey.id
+    sql_query = "REPLACE INTO CompletedSurvey(id, idSurvey, username) VALUES (?, ?, ?)"
+  } else {
+    compSurveyId = await getIdCompletedSurvey() + 1
+    sql_query = "INSERT INTO CompletedSurvey(id, idSurvey, username) VALUES (?, ?, ?)"
+  }
   return new Promise((resolve, reject) => {
     db.run(sql_query, [compSurveyId, idSurvey, username], (error) => {
       if (error) {
@@ -265,6 +356,19 @@ exports.insertUserClosedAnswer = async (idAnswer, idCS) => {
   const sql_query = "INSERT INTO UserClosedAnswer(idAnswer, idCompletedSurvey) VALUES (?, ?)"
   return new Promise((resolve, reject) => {
     db.run(sql_query, [idAnswer, idCS], (error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(true)
+      }
+    })
+  })
+}
+
+exports.deleteUserClosedAnswers = async (idCS) => {
+  const sql_query = "DELETE FROM UserClosedAnswer where idCompletedSurvey=?"
+  return new Promise((resolve, reject) => {
+    db.run(sql_query, [idCS], (error) => {
       if (error) {
         reject(error);
       } else {
@@ -292,18 +396,21 @@ exports.getUser = (username, password) => {
   return new Promise((resolve, reject) => {
     const sql = 'SELECT * FROM Admin WHERE username = ?';
     db.get(sql, [username], (err, row) => {
-      if (err)
-        reject(err); // DB error
+      if (err) {
+        reject(err);
+      }// DB error
       else if (row === undefined) {
         resolve(false); // user not found
       } else {
         bcrypt.compare(password, row.hash).then(result => {
           if (result) { // password matches
-            resolve({ id: row.id, username: row.username });
+            resolve({id: row.id, username: row.username});
           } else {
             resolve(false); // password not matching
           }
-        }).catch((err) => { console.error(err) })
+        }).catch((err) => {
+          console.error(err)
+        })
       }
     })
   })
@@ -313,12 +420,14 @@ exports.getUserById = (id) => {
   return new Promise((resolve, reject) => {
     const sql = 'select * from Admin where id = ?';
     db.get(sql, [id], (err, row) => {
-      if (err)
-        reject(err); // DB error
-      else if (row === undefined)
-        resolve(false); // user not found
+      if (err) {
+        reject(err);
+      }// DB error
+      else if (row === undefined) {
+        resolve(false);
+      }// user not found
       else {
-        resolve({ id: row.id, username: row.username });
+        resolve({id: row.id, username: row.username});
       }
     })
   })
