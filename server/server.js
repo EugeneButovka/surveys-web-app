@@ -19,6 +19,8 @@ app.use(cors())
 app.use(morgan('dev'))
 app.use(express.json())
 
+app.use(express.static(__dirname + '/public'))
+
 // activate the server
 app.listen(port, () => {
   console.log(`Server listening at http://localhost:${port}`);
@@ -291,6 +293,32 @@ app.post('/api/allAnswers', async (req, res) => {
 })
 
 app.get('/api/allAnswers/:username', async (req, res) => {
+  try {
+    const username = req.params.username
+    const result =
+        (await dao.getAllCompletedSurveysWithAnswersForUsername(username))
+            ?.reduce((res, {surveyId, questionId, answer}) => {
+              const existing = res.find(val => val.surveyId === surveyId) || {
+                surveyId,
+                questionAnswers: []
+              }
+              const newRes = res.filter(val => val.surveyId !== surveyId)
+              newRes.push({
+                surveyId,
+                questionAnswers: [
+                  ...existing.questionAnswers,
+                  {questionId, answer}
+                ]
+              })
+              return newRes
+            }, [])
+    res.json(result)
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
+app.get('/api/testImage', async (req, res) => {
   try {
     const username = req.params.username
     const result =
