@@ -352,8 +352,25 @@ exports.insertUserClosedAnswer = async (idAnswer, idCS) => {
   })
 }
 
+exports.deleteUserAnswers = async (idCS) => {
+  return Promise.all([exports.deleteUserClosedAnswers(idCS), exports.deleteUserOpenAnswers(idCS)])
+}
+
 exports.deleteUserClosedAnswers = async (idCS) => {
   const sql_query = `DELETE FROM "UserClosedAnswer" where "idCompletedSurvey"=$1`
+  return new Promise((resolve, reject) => {
+    db.query(sql_query, [idCS], (error) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(true)
+      }
+    })
+  })
+}
+
+exports.deleteUserOpenAnswers = async (idCS) => {
+  const sql_query = `DELETE FROM "UserOpenAnswer" where "idCompletedSurvey"=$1;`
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idCS], (error) => {
       if (error) {

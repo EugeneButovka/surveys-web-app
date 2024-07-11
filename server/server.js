@@ -278,10 +278,14 @@ app.post('/api/allAnswers', async (req, res) => {
       const userAnswers = survey.userAnswers
 
       const csId = await dao.insertOrReplaceCompletedSurvey(idSurvey, username)
-      await dao.deleteUserClosedAnswers(csId)
+      await dao.deleteUserAnswers(csId)
       for (const a of userAnswers) {
-        for (const value of a.values) {
-          await dao.insertUserClosedAnswer(value, csId)
+        if (a.type === 0) {
+          for (const value of a.values) {
+            if(value != null)await dao.insertUserClosedAnswer(value, csId)
+          }
+        } else {
+          await dao.insertUserOpenAnswer(csId, a.id, a.values)
         }
       }
     }
