@@ -282,7 +282,9 @@ app.post('/api/allAnswers', async (req, res) => {
       for (const a of userAnswers) {
         if (a.type === 0) {
           for (const value of a.values) {
-            if(value != null)await dao.insertUserClosedAnswer(value, csId)
+            if (value != null) {
+              await dao.insertUserClosedAnswer(value, csId)
+            }
           }
         } else {
           await dao.insertUserOpenAnswer(csId, a.id, a.values)
@@ -322,28 +324,67 @@ app.get('/api/allAnswers/:username', async (req, res) => {
   }
 })
 
-app.get('/api/testImage', async (req, res) => {
+app.get('/api/workplaceStats', async (req, res) => {
   try {
-    const username = req.params.username
-    const result =
-        (await dao.getAllCompletedSurveysWithAnswersForUsername(username))
-            ?.reduce((res, {surveyId, questionId, answer}) => {
-              const existing = res.find(val => val.surveyId === surveyId) || {
-                surveyId,
-                questionAnswers: []
+    const result = (await dao.workplaceStats())
+/*        .filter(({username, questionText, textAnswer}) =>{
+          questionText = "right_elbow_angle"
+        })
+        .length*/
+/*        ?.reduce((res, {username, questionText, textAnswer}) => {
+          const existing = res.find(val => val.username === username) || {
+            username,
+            questions: []
+          }
+          const newRes = res.filter(val => val.username !== username)
+          newRes.push({
+            username,
+            questions: [
+              ...existing.questions,
+              {
+                questionText,
+                textAnswer
               }
-              const newRes = res.filter(val => val.surveyId !== surveyId)
-              newRes.push({
-                surveyId,
-                questionAnswers: [
-                  ...existing.questionAnswers,
-                  {questionId, answer}
-                ]
-              })
-              return newRes
+            ]
+          })
+          return newRes
+        }, [])
+        .map(user => {
+          user
+          return ({
+            username: user.username,
+            questions: user.questions.reduce((res, {questionText, textAnswer}) => {
+
             }, [])
-    res.json(result)
+          })
+        })*/
+
+
+    res.json({
+      ...result,
+      totalTeamCount: 100
+    })
   } catch (error) {
     res.status(500).json(error)
   }
 })
+
+function isElbowProblem(leftText, rightText) {
+  let leftAngle = (Number(leftText) || null)
+  let rightAngle = (Number(rightText) || null)
+  if (leftAngle == null) leftAngle = rightAngle
+  if (rightAngle == null) rightAngle = leftAngle
+
+  return leftAngle > 110 || rightAngle > 110
+      || leftAngle < 80 || rightAngle < 80;
+}
+
+function isEyeProblem(leftText, rightText) {
+  let leftAngle = (Number(leftText) || null)
+  let rightAngle = (Number(rightText) || null)
+  if (leftAngle == null) leftAngle = rightAngle
+  if (rightAngle == null) rightAngle = leftAngle
+
+  return leftAngle > 190 || rightAngle > 190
+      || leftAngle < 170 || rightAngle < 170;
+}

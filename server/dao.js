@@ -1,7 +1,7 @@
 'use strict'
 
 const pg = require('pg')
-const { Client } = pg
+const {Client} = pg
 const db = new Client()
 db.connect()
 //const sqlite = require('sqlite3')
@@ -66,7 +66,9 @@ exports.getCompletedSurvey = (idCS) => {
 }
 
 exports.getIdCompletedFirstSurvey = (idSurvey) => {
-  const sql_query = `SELECT min("idSurvey") as first FROM "CompletedSurvey" where "idSurvey"=$1`
+  const sql_query = `SELECT min("idSurvey") as first
+                     FROM "CompletedSurvey"
+                     where "idSurvey"=$1`
 
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idSurvey], (err, row) => {
@@ -82,7 +84,11 @@ exports.getIdCompletedFirstSurvey = (idSurvey) => {
 }
 
 exports.getIdCompletedNextSurvey = (idCS, idSurvey) => {
-  const sql_query = `SELECT min(id) as next FROM "CompletedSurvey" where id>$1 and "idSurvey"=$2`
+  const sql_query = `SELECT min(id) as next
+                     FROM "CompletedSurvey"
+                     where id
+                         >$1
+                       and "idSurvey"=$2`
 
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idCS, idSurvey], (err, row) => {
@@ -116,7 +122,9 @@ const getIdCompletedSurveyForUsername = (idSurvey, username) => {
 }
 
 exports.getAllCompletedSurveysWithAnswersForUsername = (username) => {
-  const sql_query = `SELECT DISTINCT cs."idSurvey" as "surveyId", Q.id as "questionId", UCA."idAnswer" as "answer"
+  const sql_query = `SELECT DISTINCT cs."idSurvey"  as "surveyId",
+                                     Q.id           as "questionId",
+                                     UCA."idAnswer" as "answer"
                      FROM "CompletedSurvey" CS
                               INNER JOIN "Question" Q on cs."idSurvey" = Q."idSurvey"
                               INNER JOIN "Answer" A on Q.id = A."idQuestion"
@@ -230,7 +238,8 @@ exports.getAdminSurveys = (idAdmin) => {
 }
 
 const getIdSurvey = () => {
-  const sql_getId = `select max(id) as num from "Survey"`
+  const sql_getId = `select max(id) as num
+                     from "Survey"`
   return new Promise((resolve, reject) => {
     db.query(sql_getId, [], (err, row) => {
       if (err) {
@@ -245,7 +254,8 @@ const getIdSurvey = () => {
 }
 
 const getIdQuestion = () => {
-  const sql_getId = `select max(id) as num from "Question"`
+  const sql_getId = `select max(id) as num
+                     from "Question"`
   return new Promise((resolve, reject) => {
     db.query(sql_getId, [], (err, row) => {
       if (err) {
@@ -261,7 +271,8 @@ const getIdQuestion = () => {
 
 exports.insertSurvey = async (survey, idAdmin) => {
   const surveyId = await getIdSurvey() + 1
-  const sql_query = `INSERT INTO "Survey"(id, title, "idAdmin") VALUES($1, $2, $3)`
+  const sql_query = `INSERT INTO "Survey"(id, title, "idAdmin")
+                     VALUES ($1, $2, $3)`
 
   return new Promise((resolve, reject) => {
     db.query(sql_query, [surveyId, survey.title, idAdmin], (error) => {
@@ -277,7 +288,8 @@ exports.insertSurvey = async (survey, idAdmin) => {
 exports.insertQuestion = async (idSurvey, question) => {
   const idQuestion = await getIdQuestion() + 1
 
-  const sql_query = `INSERT INTO "Question"(id, "idSurvey", text, type, min, max) VALUES ($1, $2, $3, $1, $2, $3)`
+  const sql_query = `INSERT INTO "Question"(id, "idSurvey", text, type, min, max)
+                     VALUES ($1, $2, $3, $1, $2, $3)`
   return new Promise((resolve, reject) => {
     db.query(sql_query,
         [idQuestion, idSurvey, question.text, question.type, question.min,
@@ -292,7 +304,8 @@ exports.insertQuestion = async (idSurvey, question) => {
 }
 
 exports.insertAnswer = async (idQuestion, answer) => {
-  const sql_query = `INSERT INTO "Answer"("idQuestion", text) VALUES ($1, $2)`
+  const sql_query = `INSERT INTO "Answer"("idQuestion", text)
+                     VALUES ($1, $2)`
 
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idQuestion, answer.text], (error) => {
@@ -306,7 +319,8 @@ exports.insertAnswer = async (idQuestion, answer) => {
 }
 
 const getIdCompletedSurvey = () => {
-  const sql_getId = `select max(id) as num from "CompletedSurvey"`
+  const sql_getId = `select max(id) as num
+                     from "CompletedSurvey"`
   return new Promise((resolve, reject) => {
     db.query(sql_getId, [], (err, row) => {
       if (err) {
@@ -323,10 +337,11 @@ const getIdCompletedSurvey = () => {
 exports.insertOrReplaceCompletedSurvey = async (idSurvey, username) => {
   const compSurvey = await getIdCompletedSurveyForUsername(idSurvey, username)
   const compSurveyId = compSurvey?.id || await getIdCompletedSurvey() + 1
-  const sql_query = `INSERT INTO "CompletedSurvey"(id, "idSurvey", username) VALUES ($1, $2, $3)
-        ON CONFLICT (id) DO UPDATE
-                                SET "idSurvey" = excluded."idSurvey",
-                                                 username = excluded.username`
+  const sql_query = `INSERT INTO "CompletedSurvey"(id, "idSurvey", username)
+                     VALUES ($1, $2, $3) ON CONFLICT (id) DO
+  UPDATE
+      SET "idSurvey" = excluded."idSurvey",
+      username = excluded.username`
 
   return new Promise((resolve, reject) => {
     db.query(sql_query, [compSurveyId, idSurvey, username], (error) => {
@@ -340,7 +355,8 @@ exports.insertOrReplaceCompletedSurvey = async (idSurvey, username) => {
 }
 
 exports.insertUserClosedAnswer = async (idAnswer, idCS) => {
-  const sql_query = `INSERT INTO "UserClosedAnswer"("idAnswer", "idCompletedSurvey") VALUES ($1, $2)`
+  const sql_query = `INSERT INTO "UserClosedAnswer"("idAnswer", "idCompletedSurvey")
+                     VALUES ($1, $2)`
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idAnswer, idCS], (error) => {
       if (error) {
@@ -353,11 +369,14 @@ exports.insertUserClosedAnswer = async (idAnswer, idCS) => {
 }
 
 exports.deleteUserAnswers = async (idCS) => {
-  return Promise.all([exports.deleteUserClosedAnswers(idCS), exports.deleteUserOpenAnswers(idCS)])
+  return Promise.all([exports.deleteUserClosedAnswers(idCS),
+    exports.deleteUserOpenAnswers(idCS)])
 }
 
 exports.deleteUserClosedAnswers = async (idCS) => {
-  const sql_query = `DELETE FROM "UserClosedAnswer" where "idCompletedSurvey"=$1`
+  const sql_query = `DELETE
+                     FROM "UserClosedAnswer"
+                     where "idCompletedSurvey" = $1`
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idCS], (error) => {
       if (error) {
@@ -370,7 +389,9 @@ exports.deleteUserClosedAnswers = async (idCS) => {
 }
 
 exports.deleteUserOpenAnswers = async (idCS) => {
-  const sql_query = `DELETE FROM "UserOpenAnswer" where "idCompletedSurvey"=$1;`
+  const sql_query = `DELETE
+                     FROM "UserOpenAnswer"
+                     where "idCompletedSurvey" = $1;`
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idCS], (error) => {
       if (error) {
@@ -383,7 +404,8 @@ exports.deleteUserOpenAnswers = async (idCS) => {
 }
 
 exports.insertUserOpenAnswer = async (idCS, idQuestion, text) => {
-  const sql_query = `INSERT INTO "UserOpenAnswer"("idCompletedSurvey", "idQuestion", text) VALUES ($1, $2, $3)`
+  const sql_query = `INSERT INTO "UserOpenAnswer"("idCompletedSurvey", "idQuestion", text)
+                     VALUES ($1, $2, $3)`
   return new Promise((resolve, reject) => {
     db.query(sql_query, [idCS, idQuestion, text], (error) => {
       if (error) {
@@ -432,6 +454,47 @@ exports.getUserById = (id) => {
       }// user not found
       else {
         resolve({id: row.id, username: row.username});
+      }
+    })
+  })
+}
+
+exports.workplaceStats = () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+        with user_angle_vales as (
+                 SELECT
+                 CS.username  as "username",
+                 CAST(UOA.text AS DECIMAL) as value,
+                     (CASE WHEN Q.text='right_elbow_angle' OR Q.text='left_elbow_angle' THEN 1 ELSE 0 END) as elbow,
+                     (CASE WHEN Q.text='right_eye_angle' OR Q.text='left_eye_angle' THEN 1 ELSE 0 END) as eye
+                 FROM "CompletedSurvey" CS
+                     INNER JOIN "Survey" S on S.id = CS."idSurvey"
+                     INNER JOIN "Question" Q on CS."idSurvey" = Q."idSurvey"
+                     INNER JOIN "UserOpenAnswer" UOA on Q.id = UOA."idQuestion"
+                 where S.title = 'Angles'
+                     ),
+        user_problems as (
+                 SELECT username, eye, elbow,
+                     (CASE WHEN elbow=1 AND (value>110 OR value<80) THEN 1 ELSE 0 END) as elbow_problem,
+                     (CASE WHEN eye=1 AND (value>10 OR value<-10) THEN 1 ELSE 0 END) as eye_problem
+                 FROM user_angle_vales
+                     ),
+        user_problems_grouped as (
+                 SELECT username, MAX(elbow_problem) as elbow_group_problem,MAX(eye_problem) as eye_group_problem
+                 FROM user_problems
+                 GROUP BY username
+                     )
+    SELECT
+        sum(elbow_group_problem) as "elbowAngleProblemCount",
+        sum(eye_group_problem) as "eyeAngleProblemCount",
+        count(*) as "totalAnglesSurveySubmittedCount"
+    FROM user_problems_grouped;`;
+    db.query(sql, [], (err, row) => {
+      if (err || row === undefined) {
+        reject(err);
+      } else {
+        resolve(row.rows[0]);
       }
     })
   })
