@@ -499,3 +499,83 @@ exports.workplaceStats = () => {
     })
   })
 }
+
+exports.teamBurnoutStats = () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+        with problems as (
+            SELECT
+                CS.username  as "username",
+                (CASE
+                     WHEN A.text='Every day' THEN 4
+                     WHEN A.text='Once a week' THEN 3
+                     WHEN A.text='Sometimes in the month' THEN 2
+                     WHEN A.text='Less than once a month' THEN 1
+                     ELSE 0
+                    END) as problem_level
+            FROM "CompletedSurvey" CS
+                     INNER JOIN "Survey" S on S.id = CS."idSurvey"
+                     INNER JOIN "Question" Q on  Q."idSurvey" = CS."idSurvey"
+                     INNER JOIN "Answer" A on A."idQuestion" = Q.id
+                     INNER JOIN "UserClosedAnswer" UCA on UCA."idCompletedSurvey" = CS.id and UCA."idAnswer" = A.id
+            where Q.text='How often does the pain occur?'),
+             problems_max as (
+                 select
+                     username,
+                     MAX(problem_level) as problmem_level_max
+                 from problems
+                 GROUP BY username),
+             problems_risks as (
+                 SELECT
+                     (CASE WHEN problmem_level_max=4 THEN 1 ELSE 0 END) as very_high,
+                     (CASE WHEN problmem_level_max=3 THEN 1 ELSE 0 END) as high,
+                     (CASE WHEN problmem_level_max=2 THEN 1 ELSE 0 END) as medium,
+                     (CASE WHEN problmem_level_max=1 THEN 1 ELSE 0 END) as low
+                 FROM problems_max)
+        select
+            sum(very_high) as very_high_count,
+            sum(high) as very_high,
+            sum(medium) as medium_count,
+            sum(low) as low_count
+        from problems_risks`;
+    db.query(sql, [], (err, row) => {
+      if (err || row === undefined) {
+        reject(err);
+      } else {
+        resolve(row.rows[0]);
+      }
+    })
+  })
+}
+
+exports.teamComplainsStats = () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+        with complains as (
+            SELECT
+                CS.username  as "username",
+                S.title as part,
+                CAST(A.text as INTEGER) as rate
+            FROM "CompletedSurvey" CS
+                     INNER JOIN "Survey" S on S.id = CS."idSurvey"
+                     INNER JOIN "Question" Q on  Q."idSurvey" = CS."idSurvey"
+                     INNER JOIN "Answer" A on A."idQuestion" = Q.id
+                     INNER JOIN "UserClosedAnswer" UCA on UCA."idCompletedSurvey" = CS.id and UCA."idAnswer" = A.id
+            where Q.text='Rate your pain from 1 to 10'
+        )
+        select part, count(rate>3) as complains_count from complains
+        GROUP BY part`;
+    const query = {
+      text: sql,
+      //rowMode: 'array',
+    }
+
+    db.query(query, [], (err, row) => {
+      if (err || row === undefined) {
+        reject(err);
+      } else {
+        resolve(row.rows);
+      }
+    })
+  })
+}

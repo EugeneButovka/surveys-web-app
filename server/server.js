@@ -11,6 +11,8 @@ const session = require('express-session');
 
 const dao = require('./dao')
 
+const totalTeamCount = 100
+
 // init express
 const app = new express()
 const port = 3001
@@ -327,42 +329,36 @@ app.get('/api/allAnswers/:username', async (req, res) => {
 app.get('/api/workplaceStats', async (req, res) => {
   try {
     const result = (await dao.workplaceStats())
-/*        .filter(({username, questionText, textAnswer}) =>{
-          questionText = "right_elbow_angle"
-        })
-        .length*/
-/*        ?.reduce((res, {username, questionText, textAnswer}) => {
-          const existing = res.find(val => val.username === username) || {
-            username,
-            questions: []
-          }
-          const newRes = res.filter(val => val.username !== username)
-          newRes.push({
-            username,
-            questions: [
-              ...existing.questions,
-              {
-                questionText,
-                textAnswer
-              }
-            ]
-          })
-          return newRes
-        }, [])
-        .map(user => {
-          user
-          return ({
-            username: user.username,
-            questions: user.questions.reduce((res, {questionText, textAnswer}) => {
-
-            }, [])
-          })
-        })*/
-
 
     res.json({
       ...result,
-      totalTeamCount: 100
+      totalTeamCount
+    })
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
+app.get('/api/teamBurnoutStatus', async (req, res) => {
+  try {
+    const result = (await dao.teamBurnoutStats())
+
+    res.json({
+      ...result,
+      totalTeamCount
+    })
+  } catch (error) {
+    res.status(500).json(error)
+  }
+})
+
+app.get('/api/teamComplainsStatus', async (req, res) => {
+  try {
+    const result = (await dao.teamComplainsStats())
+
+    res.json({
+      complains: result,
+      totalTeamCount
     })
   } catch (error) {
     res.status(500).json(error)
