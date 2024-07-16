@@ -563,8 +563,10 @@ exports.teamComplainsStats = () => {
                      INNER JOIN "UserClosedAnswer" UCA on UCA."idCompletedSurvey" = CS.id and UCA."idAnswer" = A.id
             where Q.text='Rate your pain from 1 to 10'
         )
-        select part, count(rate>3) as complains_count from complains
-        GROUP BY part`;
+        select part, CAST(count(rate>3) as INTEGER) as complains_count from complains
+        GROUP BY part
+        ORDER BY complains_count DESC, part DESC
+        LIMIT 3`;
     const query = {
       text: sql,
       //rowMode: 'array',
