@@ -463,33 +463,33 @@ exports.workplaceStats = () => {
   return new Promise((resolve, reject) => {
     const sql = `
         with user_angle_vales as (
-                 SELECT
-                 CS.username  as "username",
-                 CAST(UOA.text AS DECIMAL) as value,
-                     (CASE WHEN Q.text='right_elbow_angle' OR Q.text='left_elbow_angle' THEN 1 ELSE 0 END) as elbow,
-                     (CASE WHEN Q.text='right_eye_angle' OR Q.text='left_eye_angle' THEN 1 ELSE 0 END) as eye
-                 FROM "CompletedSurvey" CS
-                     INNER JOIN "Survey" S on S.id = CS."idSurvey"
-                     INNER JOIN "Question" Q on CS."idSurvey" = Q."idSurvey"
-                     INNER JOIN "UserOpenAnswer" UOA on Q.id = UOA."idQuestion"
-                 where S.title = 'Angles'
-                     ),
-        user_problems as (
-                 SELECT username, eye, elbow,
-                     (CASE WHEN elbow=1 AND (value>110 OR value<80) THEN 1 ELSE 0 END) as elbow_problem,
-                     (CASE WHEN eye=1 AND (value>10 OR value<-10) THEN 1 ELSE 0 END) as eye_problem
-                 FROM user_angle_vales
-                     ),
-        user_problems_grouped as (
-                 SELECT username, MAX(elbow_problem) as elbow_group_problem,MAX(eye_problem) as eye_group_problem
-                 FROM user_problems
-                 GROUP BY username
-                     )
-    SELECT
-        sum(elbow_group_problem) as "elbowAngleProblemCount",
-        sum(eye_group_problem) as "eyeAngleProblemCount",
-        count(*) as "totalAnglesSurveySubmittedCount"
-    FROM user_problems_grouped;`;
+            SELECT
+                CS.username  as "username",
+                CAST(UOA.text AS DECIMAL) as value,
+            (CASE WHEN Q.text='right_elbow_angle' OR Q.text='left_elbow_angle' THEN 1 ELSE 0 END) as elbow,
+            (CASE WHEN Q.text='right_eye_angle' OR Q.text='left_eye_angle' THEN 1 ELSE 0 END) as eye
+        FROM "CompletedSurvey" CS
+            INNER JOIN "Survey" S on S.id = CS."idSurvey"
+            INNER JOIN "Question" Q on CS."idSurvey" = Q."idSurvey"
+            INNER JOIN "UserOpenAnswer" UOA on Q.id = UOA."idQuestion" and CS.id = UOA."idCompletedSurvey"
+        where S.title = 'Angles' and UOA.text is not null
+            ),
+            user_problems as (
+        SELECT username, eye, elbow,
+            (CASE WHEN elbow=1 AND (value>110 OR value<80) THEN 1 ELSE 0 END) as elbow_problem,
+            (CASE WHEN eye=1 AND (value>10 OR value<-10) THEN 1 ELSE 0 END) as eye_problem
+        FROM user_angle_vales
+            ),
+            user_problems_grouped as (
+        SELECT username, MAX(elbow_problem) as elbow_group_problem,MAX(eye_problem) as eye_group_problem
+        FROM user_problems
+        GROUP BY username
+            )
+        SELECT
+            CAST(sum(elbow_group_problem) as INTEGER) as "elbowAngleProblemCount",
+            CAST(sum(eye_group_problem) as INTEGER) as "eyeAngleProblemCount",
+            CAST(count(*) as INTEGER) as "totalAnglesSurveySubmittedCount"
+        FROM user_problems_grouped`;
     db.query(sql, [], (err, row) => {
       if (err || row === undefined) {
         reject(err);
@@ -533,10 +533,10 @@ exports.teamBurnoutStats = () => {
                      (CASE WHEN problmem_level_max=1 THEN 1 ELSE 0 END) as low
                  FROM problems_max)
         select
-            sum(very_high) as very_high_count,
-            sum(high) as very_high,
-            sum(medium) as medium_count,
-            sum(low) as low_count
+            CAST(sum(very_high) as INTEGER) as very_high_count,
+            CAST(sum(high) as INTEGER) as high_count,
+            CAST(sum(medium) as INTEGER) as medium_count,
+            CAST(sum(low) as INTEGER) as low_count
         from problems_risks`;
     db.query(sql, [], (err, row) => {
       if (err || row === undefined) {
@@ -577,6 +577,36 @@ exports.teamComplainsStats = () => {
         reject(err);
       } else {
         resolve(row.rows);
+      }
+    })
+  })
+}
+
+exports.teamIntensePainStats = () => {
+  return new Promise((resolve, reject) => {
+    const sql = `
+        with complains as (
+            SELECT
+                CS.username  as "username",
+                --S.title as part,
+                --Q.text as q,
+                MAX(CASE WHEN CAST(A.text as INTEGER)>=7 THEN 1 ELSE 0 END) as intense
+            FROM "CompletedSurvey" CS
+                     INNER JOIN "Survey" S on S.id = CS."idSurvey"
+                     INNER JOIN "Question" Q on  Q."idSurvey" = CS."idSurvey"
+                     INNER JOIN "Answer" A on A."idQuestion" = Q.id
+                     INNER JOIN "UserClosedAnswer" UCA on UCA."idCompletedSurvey" = CS.id and UCA."idAnswer" = A.id
+            where Q.text='Rate your pain from 1 to 10'
+            GROUP BY username
+        )
+        select CAST(sum(intense) as INTEGER) as intense_count
+        from complains`;
+
+    db.query(sql, [], (err, row) => {
+      if (err || row === undefined) {
+        reject(err);
+      } else {
+        resolve(row.rows[0].intense_count);
       }
     })
   })

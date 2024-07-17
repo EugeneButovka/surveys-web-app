@@ -355,9 +355,11 @@ app.get('/api/teamBurnoutStatus', async (req, res) => {
 app.get('/api/teamComplainsStatus', async (req, res) => {
   try {
     const result = (await dao.teamComplainsStats())
+    const intense_count = (await dao.teamIntensePainStats())
 
     res.json({
       complains: result,
+      intense_count,
       totalTeamCount
     })
   } catch (error) {
