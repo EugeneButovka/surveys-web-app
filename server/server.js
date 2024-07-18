@@ -11,7 +11,7 @@ const session = require('express-session');
 
 const dao = require('./dao')
 
-const totalTeamCount = 100
+const totalTeamCount = 30
 
 // init express
 const app = new express()
